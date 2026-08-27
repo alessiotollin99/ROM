@@ -52,8 +52,8 @@ V = U[:, :r]
 
 sol_reduced = np.zeros((r, n_steps + 1), dtype=np.float64)
 A_r = V.T @ A @ V
-sol_0 = V.T @ my_sol[:, 0]          # era my_sol[0, :]
-sol_reduced[:, 0] = sol_0            # era sol_reduced[0, :]
+sol_0 = V.T @ my_sol[:, 0]        
+sol_reduced[:, 0] = sol_0          
 
 b0 = q * dr / (2 * np.pi * r0 * k) * (1 / dr**2 - 1 / (r_i[0] * 2 * dr))
 b_last = 26 * (1 / dr**2 + 1 / (r_i[-1] * 2 * dr))
@@ -61,12 +61,12 @@ b_last = 26 * (1 / dr**2 + 1 / (r_i[-1] * 2 * dr))
 tic1 = time.time()
 
 for t in range(n_steps):
-    sol_full = V @ sol_reduced
-    b = np.full(n_mesh, (-sol_full[:, t] / (a * dt)), dtype=np.float64)   # era sol_full[t, :]
+    sol_full_t = V @ sol_reduced[:, t]
+    b = -sol_full_t / (a * dt)
     b[0] += -b0
     b[-1] += -b_last
     b_r = V.T @ b
-    sol_reduced[:, t + 1] = np.linalg.solve(A_r, b_r)   # era sol_reduced[t+1, :]
+    sol_reduced[:, t + 1] = np.linalg.solve(A_r, b_r) 
 
 toc1 = time.time()
 
@@ -103,4 +103,9 @@ def update(val):
 slider.on_changed(update)
 plt.show()
 
-# Computational time: xx.xx s
+# Computational time: 0.31 s 40 nodi
+
+error_t = np.linalg.norm(my_sol - sol_new, axis=0)
+plt.plot(time_vec, error_t)
+plt.tight_layout()
+plt.show()
