@@ -103,7 +103,7 @@ def update(val):
 slider.on_changed(update)
 plt.show()
 
-# Computational time: 0.31 s 40 nodi
+# Computational time: 0.31 s 40 nodes
 
 error_t = np.linalg.norm(my_sol - sol_new, axis=0)
 plt.plot(time_vec, error_t)
