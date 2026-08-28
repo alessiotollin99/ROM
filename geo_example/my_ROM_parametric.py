@@ -10,7 +10,7 @@ from datetime import datetime
 solutions_dir = Path(__file__).resolve().parent / "solutions" / "variable_props"
 data_path = sorted(solutions_dir.glob("fdm_results_*.npz"))[-1]
 data = np.load(data_path, allow_pickle=True)
-my_sol = data["base_system"] # shape (n_mesh, len(sw_values), n_steps + 1)
+my_sol = data["base_system"]  # shape (n_mesh, len(sw_values), n_steps + 1)
 A_dict = data["A_dict"].item()
 n_steps = data["n_steps"]
 n_mesh = data["n_mesh"]
@@ -62,15 +62,19 @@ r_i = np.arange(r0 + dr / 2, r_max, dr, dtype=np.float64)
 # SVD
 # ==================================================================
 
-U, sigma, Vt = np.linalg.svd(my_sol)  
+U, sigma, Vt = np.linalg.svd(my_sol)
 
 fig, ax = plt.subplots(figsize=(4, 3))
 plt.semilogy(sigma, marker="o")
 plt.tight_layout()
 plt.show()
-r = int(input("Now that you were shown the singular values you can decide how many orders to keep: "))
+r = int(
+    input(
+        "Now that you were shown the singular values you can decide how many orders to keep: "
+    )
+)
 V = U[:, :r]
-sol_reduced = np.zeros((r, (n_steps + 1) * len(sw_values)), dtype = np.float64)
+sol_reduced = np.zeros((r, (n_steps + 1) * len(sw_values)), dtype=np.float64)
 sol_0 = V.T @ my_sol[:, 0]
 
 b_last = 26 * (1 / dr**2 + 1 / (r_i[-1] * 2 * dr))
@@ -80,13 +84,13 @@ tic1 = time.time()
 for i, sw in enumerate(sw_values):
     a_loc = f_a(sw)
     k_loc = f_k(sw)
-    
+
     A_loc = A_dict[sw]
     A_r = V.T @ A_loc @ V
 
-    sol_loc = np.zeros((r, n_steps + 1), dtype = np.float64)
+    sol_loc = np.zeros((r, n_steps + 1), dtype=np.float64)
     sol_loc[:, 0] = sol_0
-    b0 = q * dr / (2 * np.pi * r0 * k_loc) * (1 / dr**2 - 1 / (r_i[0] * 2 * dr)) 
+    b0 = q * dr / (2 * np.pi * r0 * k_loc) * (1 / dr**2 - 1 / (r_i[0] * 2 * dr))
 
     for t in range(n_steps):
         sol_full_t_loc = V @ sol_loc[:, t]
@@ -96,7 +100,7 @@ for i, sw in enumerate(sw_values):
         b_r = V.T @ b
         sol_loc[:, t + 1] = np.linalg.solve(A_r, b_r)
 
-    sol_reduced[:, i * (n_steps + 1) : (i + 1) * (n_steps +1)] = sol_loc
+    sol_reduced[:, i * (n_steps + 1) : (i + 1) * (n_steps + 1)] = sol_loc
 
 toc1 = time.time()
 
@@ -137,27 +141,31 @@ plt.subplots_adjust(bottom=0.25)
 
 lines_full, lines_rom = [], []
 for i, sw in enumerate(sw_values):
-    lf, = ax.plot(r_i, my_sol_3d[:, i, 0], label=f"Full Sw={sw}")
-    lr, = ax.plot(r_i, sol_new_3d[:, i, 0], '--', color=lf.get_color(), label=f"ROM Sw={sw}")
+    (lf,) = ax.plot(r_i, my_sol_3d[:, i, 0], label=f"Full Sw={sw}")
+    (lr,) = ax.plot(
+        r_i, sol_new_3d[:, i, 0], "--", color=lf.get_color(), label=f"ROM Sw={sw}"
+    )
     lines_full.append(lf)
     lines_rom.append(lr)
 
-ax.set_xlabel('r [m]')
-ax.set_ylabel('Temperature [°C]')
+ax.set_xlabel("r [m]")
+ax.set_ylabel("Temperature [°C]")
 ax.set_ylim(min(my_sol.min(), sol_new.min()), max(my_sol.max(), sol_new.max()))
 ax.legend(fontsize=7, ncol=2)
-title = ax.set_title('t = 0 h')
+title = ax.set_title("t = 0 h")
 
 ax_slider = plt.axes([0.2, 0.1, 0.6, 0.03])
-slider = Slider(ax_slider, 'step', 0, n_steps, valinit=0, valstep=1)
+slider = Slider(ax_slider, "step", 0, n_steps, valinit=0, valstep=1)
+
 
 def update(val):
     step = int(slider.val)
     for i in range(n_sw):
         lines_full[i].set_ydata(my_sol_3d[:, i, step])
         lines_rom[i].set_ydata(sol_new_3d[:, i, step])
-    title.set_text(f't = {time_vec[step]/3600:.0f} h')
+    title.set_text(f"t = {time_vec[step]/3600:.0f} h")
     fig.canvas.draw_idle()
+
 
 slider.on_changed(update)
 
@@ -168,10 +176,19 @@ print(f"Interactive figure saved to {fig_path}")
 
 frames = [
     go.Frame(
-        data=[go.Scatter(x=r_i, y=my_sol_3d[:, i, k], name=f"Full Sw={sw_values[i]}")
-              for i in range(n_sw)]
-            + [go.Scatter(x=r_i, y=sol_new_3d[:, i, k], name=f"ROM Sw={sw_values[i]}", line=dict(dash="dash"))
-               for i in range(n_sw)],
+        data=[
+            go.Scatter(x=r_i, y=my_sol_3d[:, i, k], name=f"Full Sw={sw_values[i]}")
+            for i in range(n_sw)
+        ]
+        + [
+            go.Scatter(
+                x=r_i,
+                y=sol_new_3d[:, i, k],
+                name=f"ROM Sw={sw_values[i]}",
+                line=dict(dash="dash"),
+            )
+            for i in range(n_sw)
+        ],
         name=str(k),
         layout=go.Layout(title=f"t = {time_vec[k]/3600:.0f} h"),
     )
@@ -179,27 +196,47 @@ frames = [
 ]
 
 fig_plotly = go.Figure(
-    data=[go.Scatter(x=r_i, y=my_sol_3d[:, i, 0], name=f"Full Sw={sw_values[i]}")
-          for i in range(n_sw)]
-        + [go.Scatter(x=r_i, y=sol_new_3d[:, i, 0], name=f"ROM Sw={sw_values[i]}", line=dict(dash="dash"))
-           for i in range(n_sw)],
+    data=[
+        go.Scatter(x=r_i, y=my_sol_3d[:, i, 0], name=f"Full Sw={sw_values[i]}")
+        for i in range(n_sw)
+    ]
+    + [
+        go.Scatter(
+            x=r_i,
+            y=sol_new_3d[:, i, 0],
+            name=f"ROM Sw={sw_values[i]}",
+            line=dict(dash="dash"),
+        )
+        for i in range(n_sw)
+    ],
     frames=frames,
     layout=go.Layout(
         xaxis_title="r [m]",
         yaxis_title="Temperature [°C]",
-        yaxis_range=[min(my_sol.min(), sol_new.min()), max(my_sol.max(), sol_new.max())],
+        yaxis_range=[
+            min(my_sol.min(), sol_new.min()),
+            max(my_sol.max(), sol_new.max()),
+        ],
         title="t = 0 h",
-        sliders=[{
-            "currentvalue": {"prefix": "step: "},
-            "steps": [
-                {
-                    "args": [[str(k)], {"mode": "immediate", "frame": {"duration": 0, "redraw": True}}],
-                    "label": f"{time_vec[k]/3600:.0f} h",
-                    "method": "animate",
-                }
-                for k in frame_steps
-            ],
-        }],
+        sliders=[
+            {
+                "currentvalue": {"prefix": "step: "},
+                "steps": [
+                    {
+                        "args": [
+                            [str(k)],
+                            {
+                                "mode": "immediate",
+                                "frame": {"duration": 0, "redraw": True},
+                            },
+                        ],
+                        "label": f"{time_vec[k]/3600:.0f} h",
+                        "method": "animate",
+                    }
+                    for k in frame_steps
+                ],
+            }
+        ],
     ),
 )
 
@@ -222,24 +259,26 @@ plt.subplots_adjust(bottom=0.25)
 
 error_lines = []
 for i, sw in enumerate(sw_values):
-    le, = ax_err.plot(r_i, error_field_3d[:, i, 0], label=f"Sw={sw}")
+    (le,) = ax_err.plot(r_i, error_field_3d[:, i, 0], label=f"Sw={sw}")
     error_lines.append(le)
 
-ax_err.set_xlabel('r [m]')
-ax_err.set_ylabel('Error |Full - ROM| [°C]')
+ax_err.set_xlabel("r [m]")
+ax_err.set_ylabel("Error |Full - ROM| [°C]")
 ax_err.set_ylim(0, error_field_3d.max() * 1.1)
 ax_err.legend()
-title_err = ax_err.set_title('t = 0 h')
+title_err = ax_err.set_title("t = 0 h")
 
 ax_slider_err = plt.axes([0.2, 0.1, 0.6, 0.03])
-slider_err = Slider(ax_slider_err, 'step', 0, n_steps, valinit=0, valstep=1)
+slider_err = Slider(ax_slider_err, "step", 0, n_steps, valinit=0, valstep=1)
+
 
 def update_error(val):
     step = int(slider_err.val)
     for i in range(n_sw):
         error_lines[i].set_ydata(error_field_3d[:, i, step])
-    title_err.set_text(f't = {time_vec[step]/3600:.0f} h')
+    title_err.set_text(f"t = {time_vec[step]/3600:.0f} h")
     fig_err.canvas.draw_idle()
+
 
 slider_err.on_changed(update_error)
 
@@ -250,8 +289,10 @@ print(f"Interactive error figure saved to {err_fig_path}")
 
 error_frames = [
     go.Frame(
-        data=[go.Scatter(x=r_i, y=error_field_3d[:, i, k], name=f"Sw={sw_values[i]}")
-              for i in range(n_sw)],
+        data=[
+            go.Scatter(x=r_i, y=error_field_3d[:, i, k], name=f"Sw={sw_values[i]}")
+            for i in range(n_sw)
+        ],
         name=str(k),
         layout=go.Layout(title=f"t = {time_vec[k]/3600:.0f} h"),
     )
@@ -259,25 +300,35 @@ error_frames = [
 ]
 
 fig_err_plotly = go.Figure(
-    data=[go.Scatter(x=r_i, y=error_field_3d[:, i, 0], name=f"Sw={sw_values[i]}")
-          for i in range(n_sw)],
+    data=[
+        go.Scatter(x=r_i, y=error_field_3d[:, i, 0], name=f"Sw={sw_values[i]}")
+        for i in range(n_sw)
+    ],
     frames=error_frames,
     layout=go.Layout(
         xaxis_title="r [m]",
         yaxis_title="Error |Full - ROM| [°C]",
         yaxis_range=[0, error_field_3d.max() * 1.1],
         title="t = 0 h",
-        sliders=[{
-            "currentvalue": {"prefix": "step: "},
-            "steps": [
-                {
-                    "args": [[str(k)], {"mode": "immediate", "frame": {"duration": 0, "redraw": True}}],
-                    "label": f"{time_vec[k]/3600:.0f} h",
-                    "method": "animate",
-                }
-                for k in frame_steps
-            ],
-        }],
+        sliders=[
+            {
+                "currentvalue": {"prefix": "step: "},
+                "steps": [
+                    {
+                        "args": [
+                            [str(k)],
+                            {
+                                "mode": "immediate",
+                                "frame": {"duration": 0, "redraw": True},
+                            },
+                        ],
+                        "label": f"{time_vec[k]/3600:.0f} h",
+                        "method": "animate",
+                    }
+                    for k in frame_steps
+                ],
+            }
+        ],
     ),
 )
 
