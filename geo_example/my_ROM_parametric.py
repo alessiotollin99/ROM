@@ -77,7 +77,7 @@ V = U[:, :r]
 sol_reduced = np.zeros((r, (n_steps + 1) * len(sw_values)), dtype=np.float64)
 sol_0 = V.T @ my_sol[:, 0]
 
-b_last = 26 * (1 / dr**2 + 1 / (r_i[-1] * 2 * dr))
+b_last = 2 * Tg * (1 / dr**2 + 1 / (r_i[-1] * 2 * dr))
 
 tic1 = time.time()
 
@@ -127,7 +127,7 @@ graphics_dir = Path(__file__).resolve().parent / "graphics" / "variable_props"
 graphics_dir.mkdir(parents=True, exist_ok=True)
 timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-html_stride = 24  # one frame per day instead of per hour, keeps the html light
+html_stride = 24  # one frame per day instead of per hour
 frame_steps = list(range(0, n_steps + 1, html_stride))
 if frame_steps[-1] != n_steps:
     frame_steps.append(n_steps)

@@ -52,16 +52,20 @@ fig, ax = plt.subplots(figsize=(4, 3))
 plt.semilogy(sigma, marker="o")
 plt.tight_layout()
 plt.show()
-r = int(input("Now that you were shown the singular values you can decide how many orders to keep: "))
+r = int(
+    input(
+        "Now that you were shown the singular values you can decide how many orders to keep: "
+    )
+)
 V = U[:, :r]
 
 sol_reduced = np.zeros((r, n_steps + 1), dtype=np.float64)
 A_r = V.T @ A @ V
-sol_0 = V.T @ my_sol[:, 0]        
-sol_reduced[:, 0] = sol_0          
+sol_0 = V.T @ my_sol[:, 0]
+sol_reduced[:, 0] = sol_0
 
 b0 = q * dr / (2 * np.pi * r0 * k) * (1 / dr**2 - 1 / (r_i[0] * 2 * dr))
-b_last = 26 * (1 / dr**2 + 1 / (r_i[-1] * 2 * dr))
+b_last = 2 * Tg * (1 / dr**2 + 1 / (r_i[-1] * 2 * dr))
 
 tic1 = time.time()
 
@@ -71,7 +75,7 @@ for t in range(n_steps):
     b[0] += -b0
     b[-1] += -b_last
     b_r = V.T @ b
-    sol_reduced[:, t + 1] = np.linalg.solve(A_r, b_r) 
+    sol_reduced[:, t + 1] = np.linalg.solve(A_r, b_r)
 
 toc1 = time.time()
 
@@ -114,33 +118,37 @@ import plotly.graph_objects as go
 fig, ax = plt.subplots(figsize=(8, 5))
 plt.subplots_adjust(bottom=0.25)
 
-line1, = ax.plot(r_i, my_sol[:, 0], label='Full')
-line2, = ax.plot(r_i, sol_new[:, 0], label='ROM')
-ax.set_xlabel('r [m]')
-ax.set_ylabel('Temperature [°C]')
+(line1,) = ax.plot(r_i, my_sol[:, 0], label="Full")
+(line2,) = ax.plot(r_i, sol_new[:, 0], label="ROM")
+ax.set_xlabel("r [m]")
+ax.set_ylabel("Temperature [°C]")
 ax.set_ylim(my_sol.min(), my_sol.max())
-title = ax.set_title('t = 0 h')
+title = ax.set_title("t = 0 h")
 
 # Second y-axis: L2 error at the current step, drawn as a flat reference line
 # that moves up/down as the slider scrolls through time.
 ax2 = ax.twinx()
-ax2.set_ylabel('Error (L2 norm) [°C]')
+ax2.set_ylabel("Error (L2 norm) [°C]")
 ax2.set_ylim(0, error_t.max() * 1.1)
-error_line, = ax2.plot(r_i, np.full_like(r_i, error_t[0]), '--', color='tab:red', label='Error')
+(error_line,) = ax2.plot(
+    r_i, np.full_like(r_i, error_t[0]), "--", color="tab:red", label="Error"
+)
 
 lines = [line1, line2, error_line]
-ax.legend(lines, [ln.get_label() for ln in lines], loc='upper right')
+ax.legend(lines, [ln.get_label() for ln in lines], loc="upper right")
 
 ax_slider = plt.axes([0.2, 0.1, 0.6, 0.03])
-slider = Slider(ax_slider, 'step', 0, n_steps, valinit=0, valstep=1)
+slider = Slider(ax_slider, "step", 0, n_steps, valinit=0, valstep=1)
+
 
 def update(val):
     step = int(slider.val)
     line1.set_ydata(my_sol[:, step])
     line2.set_ydata(sol_new[:, step])
     error_line.set_ydata(np.full_like(r_i, error_t[step]))
-    title.set_text(f't = {time_vec[step]/3600:.0f} h')
+    title.set_text(f"t = {time_vec[step]/3600:.0f} h")
     fig.canvas.draw_idle()
+
 
 slider.on_changed(update)
 
@@ -160,10 +168,17 @@ error_line_x = [r_i[0], r_i[-1]]  # flat reference line spanning the r domain
 
 frames = [
     go.Frame(
-        data=[go.Scatter(x=r_i, y=my_sol[:, k], name="Full"),
-              go.Scatter(x=r_i, y=sol_new[:, k], name="ROM"),
-              go.Scatter(x=error_line_x, y=[error_t[k], error_t[k]], name="Error",
-                         yaxis="y2", line=dict(dash="dash", color="red"))],
+        data=[
+            go.Scatter(x=r_i, y=my_sol[:, k], name="Full"),
+            go.Scatter(x=r_i, y=sol_new[:, k], name="ROM"),
+            go.Scatter(
+                x=error_line_x,
+                y=[error_t[k], error_t[k]],
+                name="Error",
+                yaxis="y2",
+                line=dict(dash="dash", color="red"),
+            ),
+        ],
         name=str(k),
         layout=go.Layout(title=f"t = {time_vec[k]/3600:.0f} h"),
     )
@@ -171,29 +186,48 @@ frames = [
 ]
 
 fig_plotly = go.Figure(
-    data=[go.Scatter(x=r_i, y=my_sol[:, 0], name="Full"),
-          go.Scatter(x=r_i, y=sol_new[:, 0], name="ROM"),
-          go.Scatter(x=error_line_x, y=[error_t[0], error_t[0]], name="Error",
-                     yaxis="y2", line=dict(dash="dash", color="red"))],
+    data=[
+        go.Scatter(x=r_i, y=my_sol[:, 0], name="Full"),
+        go.Scatter(x=r_i, y=sol_new[:, 0], name="ROM"),
+        go.Scatter(
+            x=error_line_x,
+            y=[error_t[0], error_t[0]],
+            name="Error",
+            yaxis="y2",
+            line=dict(dash="dash", color="red"),
+        ),
+    ],
     frames=frames,
     layout=go.Layout(
         xaxis_title="r [m]",
         yaxis_title="Temperature [°C]",
         yaxis_range=[my_sol.min(), my_sol.max()],
-        yaxis2=dict(title="Error (L2 norm) [°C]", overlaying="y", side="right",
-                    range=[0, error_t.max() * 1.1]),
+        yaxis2=dict(
+            title="Error (L2 norm) [°C]",
+            overlaying="y",
+            side="right",
+            range=[0, error_t.max() * 1.1],
+        ),
         title="t = 0 h",
-        sliders=[{
-            "currentvalue": {"prefix": "step: "},
-            "steps": [
-                {
-                    "args": [[str(k)], {"mode": "immediate", "frame": {"duration": 0, "redraw": True}}],
-                    "label": f"{time_vec[k]/3600:.0f} h",
-                    "method": "animate",
-                }
-                for k in frame_steps
-            ],
-        }],
+        sliders=[
+            {
+                "currentvalue": {"prefix": "step: "},
+                "steps": [
+                    {
+                        "args": [
+                            [str(k)],
+                            {
+                                "mode": "immediate",
+                                "frame": {"duration": 0, "redraw": True},
+                            },
+                        ],
+                        "label": f"{time_vec[k]/3600:.0f} h",
+                        "method": "animate",
+                    }
+                    for k in frame_steps
+                ],
+            }
+        ],
     ),
 )
 

@@ -61,12 +61,12 @@ x0 = np.full(n_mesh, Tstart, dtype=np.float64)
 my_sol = np.zeros((n_mesh, n_steps + 1), dtype=np.float64)
 my_sol[:, 0] = x0
 solution_list = []
-A_dict = {} # dictionary to store all the matrixes created
+A_dict = {}  # dictionary to store all the matrixes created
 
 # ==================================================================
 # Cycle
 # ==================================================================
-b_last = 26 * (1 / dr**2 + 1 / (r_i[-1] * 2 * dr))
+b_last = 2 * Tg * (1 / dr**2 + 1 / (r_i[-1] * 2 * dr))
 
 tic1 = time.time()
 
@@ -123,7 +123,7 @@ plt.subplots_adjust(bottom=0.25)
 
 lines = []
 for i in range(len(sw_values)):
-    line, = ax.plot(r_i, my_sol_3d[:, i, 0], label=f"Sw={sw_values[i]}")
+    (line,) = ax.plot(r_i, my_sol_3d[:, i, 0], label=f"Sw={sw_values[i]}")
     lines.append(line)
 
 ax.legend()
@@ -154,9 +154,7 @@ with open(fig_path, "wb") as f:
     dill.dump(fig, f)
 print(f"Interactive figure saved to {fig_path}")
 
-# HTML export (Plotly) - opens in any browser, no Python required.
-# Only every `html_stride`-th step is embedded as a frame, otherwise the file
-# balloons and the slider becomes very slow to interact with in the browser.
+
 html_stride = 24  # one frame per day instead of per hour
 frame_steps = list(range(0, n_steps + 1, html_stride))
 if frame_steps[-1] != n_steps:
@@ -164,8 +162,10 @@ if frame_steps[-1] != n_steps:
 
 frames = [
     go.Frame(
-        data=[go.Scatter(x=r_i, y=my_sol_3d[:, i, k], name=f"Sw={sw_values[i]}")
-              for i in range(len(sw_values))],
+        data=[
+            go.Scatter(x=r_i, y=my_sol_3d[:, i, k], name=f"Sw={sw_values[i]}")
+            for i in range(len(sw_values))
+        ],
         name=str(k),
         layout=go.Layout(title=f"t = {time_vec[k]/3600:.0f} h"),
     )
@@ -173,25 +173,35 @@ frames = [
 ]
 
 fig_plotly = go.Figure(
-    data=[go.Scatter(x=r_i, y=my_sol_3d[:, i, 0], name=f"Sw={sw_values[i]}")
-          for i in range(len(sw_values))],
+    data=[
+        go.Scatter(x=r_i, y=my_sol_3d[:, i, 0], name=f"Sw={sw_values[i]}")
+        for i in range(len(sw_values))
+    ],
     frames=frames,
     layout=go.Layout(
         xaxis_title="r [m]",
         yaxis_title="Temperature [°C]",
         yaxis_range=[my_sol.min(), my_sol.max()],
         title="t = 0 h",
-        sliders=[{
-            "currentvalue": {"prefix": "step: "},
-            "steps": [
-                {
-                    "args": [[str(k)], {"mode": "immediate", "frame": {"duration": 0, "redraw": True}}],
-                    "label": f"{time_vec[k]/3600:.0f} h",
-                    "method": "animate",
-                }
-                for k in frame_steps
-            ],
-        }],
+        sliders=[
+            {
+                "currentvalue": {"prefix": "step: "},
+                "steps": [
+                    {
+                        "args": [
+                            [str(k)],
+                            {
+                                "mode": "immediate",
+                                "frame": {"duration": 0, "redraw": True},
+                            },
+                        ],
+                        "label": f"{time_vec[k]/3600:.0f} h",
+                        "method": "animate",
+                    }
+                    for k in frame_steps
+                ],
+            }
+        ],
     ),
 )
 
